@@ -1,2 +1,166 @@
 # veri-g-rselle-tirme-ve-analiz-uygulamas-
-nesne tabanlı programlama
+# nesne tabanlı programlama
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import plotly.express as px
+from tkinter import *
+from tkinter import filedialog, ttk
+import os
+
+class VeriGorselleştirme:
+    def __init__(self):
+        self.pencere = Tk()
+        self.pencere.title("Veri Görselleştirme Aracı")
+        self.pencere.geometry("800x600")
+        
+        # Türkçe karakter desteği
+        plt.rcParams['font.family'] = 'DejaVu Sans'
+        
+        # Veri çerçevesi
+        self.df = None
+        
+        # Arayüz elemanları
+        self.create_widgets()
+        
+        self.pencere.mainloop()
+    
+    def create_widgets(self):
+        # Dosya seçim bölümü
+        self.dosya_frame = Frame(self.pencere)
+        self.dosya_frame.pack(pady=10)
+        
+        self.dosya_butonu = Button(self.dosya_frame, text="Dosya Seç", command=self.dosya_sec)
+        self.dosya_butonu.pack(side=LEFT, padx=5)
+        
+        self.dosya_etiketi = Label(self.dosya_frame, text="Dosya seçilmedi")
+        self.dosya_etiketi.pack(side=LEFT, padx=5)
+        
+        # Grafik tipi seçimi
+        self.grafik_tipi = StringVar()
+        self.grafik_secenekleri = ttk.Combobox(self.pencere, 
+                                              textvariable=self.grafik_tipi,
+                                              values=[
+                                                  "Histogram",
+                                                  "Dağılım Grafiği",
+                                                  "3D Dağılım Grafiği",
+                                                  "Çubuk Grafiği",
+                                                  "Pasta Grafiği",
+                                                  "Alan Grafiği"
+                                              ])
+        self.grafik_secenekleri.pack(pady=10)
+        self.grafik_secenekleri.set("Grafik tipini seçin")
+        
+        # Sütun seçim alanı
+        self.sutun_frame = Frame(self.pencere)
+        self.sutun_frame.pack(pady=10)
+        
+        # Sütun seçimi için değişkenler
+        self.x_sutunu = StringVar()
+        self.y_sutunu = StringVar()
+        self.z_sutunu = StringVar()
+        self.renk_sutunu = StringVar()
+        self.boyut_sutunu = StringVar()
+        
+        # Sütun seçim alanları
+        Label(self.sutun_frame, text="X Sütunu:").grid(row=0, column=0, padx=5)
+        self.x_secim = ttk.Combobox(self.sutun_frame, textvariable=self.x_sutunu)
+        self.x_secim.grid(row=0, column=1, padx=5)
+        
+        Label(self.sutun_frame, text="Y Sütunu:").grid(row=1, column=0, padx=5)
+        self.y_secim = ttk.Combobox(self.sutun_frame, textvariable=self.y_sutunu)
+        self.y_secim.grid(row=1, column=1, padx=5)
+        
+        Label(self.sutun_frame, text="Z Sütunu:").grid(row=2, column=0, padx=5)
+        self.z_secim = ttk.Combobox(self.sutun_frame, textvariable=self.z_sutunu)
+        self.z_secim.grid(row=2, column=1, padx=5)
+        
+        Label(self.sutun_frame, text="Renk Sütunu:").grid(row=3, column=0, padx=5)
+        self.renk_secim = ttk.Combobox(self.sutun_frame, textvariable=self.renk_sutunu)
+        self.renk_secim.grid(row=3, column=1, padx=5)
+        
+        Label(self.sutun_frame, text="Boyut Sütunu:").grid(row=4, column=0, padx=5)
+        self.boyut_secim = ttk.Combobox(self.sutun_frame, textvariable=self.boyut_sutunu)
+        self.boyut_secim.grid(row=4, column=1, padx=5)
+        
+        # Görselleştirme butonu
+        self.goster_butonu = Button(self.pencere, text="Görselleştir", command=self.gorselleştir)
+        self.goster_butonu.pack(pady=10)
+    
+    def dosya_sec(self):
+        dosya_yolu = filedialog.askopenfilename(filetypes=[("CSV Dosyaları", "*.csv")])
+        if dosya_yolu:
+            self.df = pd.read_csv(dosya_yolu)
+            self.dosya_etiketi.config(text=f"Seçilen dosya: {os.path.basename(dosya_yolu)}")
+            
+            # Sütun seçeneklerini güncelle
+            sutunlar = list(self.df.columns)
+            self.x_secim['values'] = sutunlar
+            self.y_secim['values'] = sutunlar
+            self.z_secim['values'] = sutunlar
+            self.renk_secim['values'] = sutunlar
+            self.boyut_secim['values'] = sutunlar
+    
+    def gorselleştir(self):
+        if self.df is None:
+            return
+        
+        grafik_tipi = self.grafik_tipi.get()
+        plt.figure(figsize=(12, 8))
+        
+        if grafik_tipi == "Histogram":
+            if self.x_sutunu.get():
+                if self.renk_sutunu.get():
+                    sns.histplot(data=self.df, x=self.x_sutunu.get(), hue=self.renk_sutunu.get())
+                else:
+                    sns.histplot(data=self.df, x=self.x_sutunu.get())
+                plt.title(f'{self.x_sutunu.get()} Dağılımı')
+                plt.grid(True, alpha=0.3)
+                
+        elif grafik_tipi == "Dağılım Grafiği":
+            if self.x_sutunu.get() and self.y_sutunu.get():
+                sns.scatterplot(data=self.df, 
+                              x=self.x_sutunu.get(), 
+                              y=self.y_sutunu.get(),
+                              hue=self.renk_sutunu.get() if self.renk_sutunu.get() else None,
+                              size=self.boyut_sutunu.get() if self.boyut_sutunu.get() else None)
+                plt.title(f'{self.x_sutunu.get()} ve {self.y_sutunu.get()} İlişkisi')
+                plt.grid(True, alpha=0.3)
+                
+        elif grafik_tipi == "3D Dağılım Grafiği":
+            if self.x_sutunu.get() and self.y_sutunu.get() and self.z_sutunu.get():
+                fig = px.scatter_3d(self.df,
+                                  x=self.x_sutunu.get(),
+                                  y=self.y_sutunu.get(),
+                                  z=self.z_sutunu.get(),
+                                  color=self.renk_sutunu.get() if self.renk_sutunu.get() else None,
+                                  size=self.boyut_sutunu.get() if self.boyut_sutunu.get() else None)
+                fig.show()
+                return
+                
+        elif grafik_tipi == "Çubuk Grafiği":
+            if self.x_sutunu.get() and self.y_sutunu.get():
+                sns.barplot(data=self.df, 
+                          x=self.x_sutunu.get(), 
+                          y=self.y_sutunu.get(),
+                          hue=self.renk_sutunu.get() if self.renk_sutunu.get() else None)
+                plt.title(f'{self.x_sutunu.get()} - {self.y_sutunu.get()} Çubuk Grafiği')
+                
+        elif grafik_tipi == "Pasta Grafiği":
+            if self.x_sutunu.get() and self.y_sutunu.get():
+                plt.pie(self.df[self.y_sutunu.get()], 
+                       labels=self.df[self.x_sutunu.get()],
+                       autopct='%1.1f%%')
+                plt.title(f'{self.y_sutunu.get()} Pasta Grafiği')
+                
+        elif grafik_tipi == "Alan Grafiği":
+            if self.x_sutunu.get() and self.y_sutunu.get():
+                plt.fill_between(self.df[self.x_sutunu.get()], 
+                               self.df[self.y_sutunu.get()])
+                plt.title(f'{self.x_sutunu.get()} - {self.y_sutunu.get()} Alan Grafiği')
+        
+        plt.tight_layout()
+        plt.show()
+
+if __name__ == "__main__":
+    app = VeriGorselleştirme()
